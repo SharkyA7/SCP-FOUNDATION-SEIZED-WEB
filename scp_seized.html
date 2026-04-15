@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEIZED — SCP Foundation</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Oswald:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --black: #000000;
+    --deep: #050505;
+    --blood: #8b0000;
+    --red: #cc0000;
+    --white: #e8e2d4;
+    --dim: #a09880;
+    --scanline: rgba(0,0,0,0.6);
+  }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    cursor: default;
+    user-select: none;
+  }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* Flicker overlay */
+  #flicker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    pointer-events: none;
+    z-index: 98;
+    animation: flicker-bg 0.1s infinite;
+  }
+
+  @keyframes flicker-bg {
+    0%, 95%, 100%  { opacity: 0; background: rgba(0,0,0,0); }
+    96%            { opacity: 1; background: rgba(255,255,255,0.03); }
+    97%            { opacity: 0; }
+    98%            { opacity: 1; background: rgba(255,255,255,0.06); }
+    99%            { opacity: 0; }
+  }
+
+  /* Noise texture overlay */
+  #noise {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 97;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    animation: noise-shift 0.15s steps(1) infinite;
+  }
+
+  @keyframes noise-shift {
+    0%   { background-position: 0 0; }
+    25%  { background-position: -50px 30px; }
+    50%  { background-position: 20px -40px; }
+    75%  { background-position: -30px -20px; }
+    100% { background-position: 10px 50px; }
+  }
+
+  /* Main container */
+  .container {
+    position: relative;
+    z-index: 10;
+    max-width: 820px;
+    width: 94%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    animation: container-flicker 8s infinite;
+  }
+
+  @keyframes container-flicker {
+    0%, 100%  { opacity: 1; }
+    10%       { opacity: 1; }
+    10.1%     { opacity: 0.7; }
+    10.2%     { opacity: 1; }
+    44%       { opacity: 1; }
+    44.05%    { opacity: 0.5; }
+    44.1%     { opacity: 1; }
+    74%       { opacity: 1; }
+    74.05%    { opacity: 0.85; }
+    74.1%     { opacity: 0.4; }
+    74.15%    { opacity: 1; }
+  }
+
+  /* Top bar */
+  .top-bar {
+    width: 100%;
+    border-top: 2px solid var(--red);
+    border-bottom: 1px solid var(--blood);
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 36px;
+    animation: stroke-flicker 4s infinite;
+  }
+
+  @keyframes stroke-flicker {
+    0%, 100%  { border-color: var(--red); box-shadow: 0 0 8px var(--blood); }
+    15%       { border-color: var(--blood); box-shadow: none; }
+    15.1%     { border-color: var(--red); box-shadow: 0 0 12px var(--red); }
+    30%       { border-color: var(--red); box-shadow: 0 0 8px var(--blood); }
+    60%       { border-color: var(--red); }
+    60.1%     { border-color: #ff0000; box-shadow: 0 0 20px #ff0000; }
+    60.3%     { border-color: var(--blood); box-shadow: none; }
+    60.5%     { border-color: var(--red); box-shadow: 0 0 8px var(--blood); }
+  }
+
+  .top-bar span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .top-bar .alert-id {
+    color: var(--red);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    animation: blink 1.4s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.2; }
+  }
+
+  /* SCP Logo SVG */
+  .logo-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin-bottom: 32px;
+    animation: logo-flicker 5s infinite;
+  }
+
+  @keyframes logo-flicker {
+    0%, 100%  { filter: drop-shadow(0 0 6px rgba(200,200,200,0.5)); opacity: 1; }
+    8%        { filter: none; opacity: 0.6; }
+    8.1%      { filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); opacity: 1; }
+    25%       { filter: drop-shadow(0 0 6px rgba(200,200,200,0.5)); }
+    50%       { opacity: 1; filter: drop-shadow(0 0 4px rgba(200,200,200,0.3)); }
+    50.1%     { opacity: 0.3; filter: none; }
+    50.2%     { opacity: 1; filter: drop-shadow(0 0 16px rgba(255,255,255,0.9)); }
+    50.5%     { filter: drop-shadow(0 0 6px rgba(200,200,200,0.5)); }
+    80%       { opacity: 1; }
+    80.05%    { opacity: 0.7; }
+    80.1%     { opacity: 0; }
+    80.2%     { opacity: 1; }
+  }
+
+  /* Designation strip */
+  .designation {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.45em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    text-align: center;
+    line-height: 2;
+  }
+
+  .designation .code {
+    color: var(--white);
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    animation: code-flicker 7s infinite;
+  }
+
+  @keyframes code-flicker {
+    0%, 100% { color: var(--white); }
+    33%      { color: var(--white); }
+    33.05%   { color: var(--dim); }
+    33.1%    { color: var(--white); }
+    66%      { color: var(--white); }
+    66.05%   { color: var(--red); }
+    66.2%    { color: var(--white); }
+  }
+
+  /* SEIZED heading */
+  .seized-wrap {
+    position: relative;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .seized-wrap::before,
+  .seized-wrap::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--red) 20%, var(--red) 80%, transparent);
+    animation: stroke-flicker 4s 0.5s infinite;
+    margin: 8px 0;
+  }
+
+  .seized-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 6vw, 58px);
+    letter-spacing: 0.12em;
+    color: var(--white);
+    text-transform: uppercase;
+    line-height: 1;
+    text-align: center;
+    animation: title-flicker 6s infinite;
+    position: relative;
+  }
+
+  @keyframes title-flicker {
+    0%, 100%  { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.15), 0 0 60px rgba(180,180,180,0.05); }
+    5%        { opacity: 0.6; text-shadow: none; }
+    5.1%      { opacity: 1; text-shadow: 0 0 50px rgba(255,255,255,0.4); }
+    5.3%      { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.15); }
+    20%       { opacity: 1; }
+    20.05%    { opacity: 0; }
+    20.1%     { opacity: 0.8; }
+    20.15%    { opacity: 0; }
+    20.2%     { opacity: 1; }
+    65%       { opacity: 1; }
+    65.1%     { opacity: 0.4; }
+    65.2%     { opacity: 1; text-shadow: 0 0 80px rgba(255,255,255,0.6); }
+    65.4%     { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.15); }
+  }
+
+  /* Subtitle "BY THE SCP FOUNDATION" */
+  .seized-by {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(11px, 2vw, 14px);
+    letter-spacing: 0.55em;
+    color: var(--dim);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 40px;
+    animation: subtitle-flicker 9s infinite;
+  }
+
+  @keyframes subtitle-flicker {
+    0%, 100% { opacity: 1; color: var(--dim); }
+    40%      { opacity: 1; color: var(--dim); }
+    40.1%    { opacity: 0.2; }
+    40.2%    { opacity: 1; color: var(--red); }
+    40.5%    { color: var(--dim); }
+    78%      { opacity: 1; }
+    78.05%   { opacity: 0.5; }
+    78.1%    { opacity: 1; }
+  }
+
+  /* Divider */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--blood) 30%, var(--blood) 70%, transparent);
+    margin-bottom: 32px;
+    animation: stroke-flicker 4s 1s infinite;
+  }
+
+  /* Warning text block */
+  .warning-block {
+    border: 1px solid var(--blood);
+    padding: 20px 28px;
+    width: 100%;
+    position: relative;
+    margin-bottom: 36px;
+    background: rgba(139,0,0,0.04);
+    animation: box-flicker 11s infinite;
+  }
+
+  @keyframes box-flicker {
+    0%, 100% { border-color: var(--blood); background: rgba(139,0,0,0.04); }
+    55%      { border-color: var(--blood); }
+    55.05%   { border-color: var(--red); background: rgba(180,0,0,0.08); }
+    55.2%    { border-color: var(--blood); background: rgba(139,0,0,0.04); }
+    88%      { border-color: var(--blood); }
+    88.05%   { border-color: transparent; }
+    88.1%    { border-color: var(--blood); }
+  }
+
+  .warning-block::before {
+    content: '⚠  WARNING';
+    position: absolute;
+    top: -9px;
+    left: 20px;
+    background: var(--black);
+    padding: 0 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    animation: blink 2.5s step-end infinite;
+  }
+
+  .warning-block p {
+    font-family: 'Special Elite', serif;
+    font-size: clamp(13px, 1.8vw, 15px);
+    line-height: 1.8;
+    color: var(--white);
+    text-align: justify;
+  }
+
+  .redact {
+    display: inline-block;
+    background: var(--white);
+    color: var(--white);
+    letter-spacing: 0;
+    padding: 0 2px;
+    font-size: 0.9em;
+    animation: redact-flicker 12s 3s infinite;
+  }
+
+  @keyframes redact-flicker {
+    0%, 100%  { background: var(--white); color: var(--white); }
+    45%       { background: var(--white); color: var(--white); }
+    45.1%     { background: transparent; color: var(--white); }
+    45.4%     { background: var(--white); color: var(--white); }
+  }
+
+  /* Bottom metadata */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    width: 100%;
+    gap: 1px;
+    border: 1px solid var(--blood);
+    margin-bottom: 28px;
+    animation: box-flicker 13s 2s infinite;
+  }
+
+  .meta-cell {
+    padding: 10px 14px;
+    border-right: 1px solid var(--blood);
+  }
+
+  .meta-cell:last-child { border-right: none; }
+
+  .meta-cell .label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--dim);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .meta-cell .value {
+    font-size: 12px;
+    color: var(--white);
+    letter-spacing: 0.1em;
+    animation: code-flicker 6s infinite;
+  }
+
+  .value.red { color: var(--red); animation: blink 1.8s step-end infinite; }
+
+  /* Footer */
+  .bottom-bar {
+    width: 100%;
+    border-top: 1px solid var(--blood);
+    border-bottom: 2px solid var(--red);
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: stroke-flicker 4s 2s infinite;
+  }
+
+  .bottom-bar span {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .bottom-bar .warning-code {
+    color: var(--red);
+    font-size: 10px;
+    animation: blink 0.9s step-end infinite;
+  }
+
+  /* Stamp */
+  .stamp {
+    position: absolute;
+    top: 60px;
+    right: -20px;
+    transform: rotate(12deg);
+    border: 3px solid rgba(180, 0, 0, 0.55);
+    padding: 8px 14px;
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(180, 0, 0, 0.55);
+    text-transform: uppercase;
+    pointer-events: none;
+    animation: stamp-flicker 10s infinite;
+    white-space: nowrap;
+  }
+
+  @keyframes stamp-flicker {
+    0%, 100%  { opacity: 1; }
+    22%       { opacity: 1; }
+    22.05%    { opacity: 0.3; }
+    22.1%     { opacity: 1; }
+    70%       { opacity: 1; }
+    70.05%    { opacity: 0; }
+    70.2%     { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div id="flicker-overlay"></div>
+<div id="noise"></div>
+
+<div class="container">
+  <div class="stamp">CLASSIFIED</div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <span>SCP FOUNDATION // SECURE SYSTEMS DIVISION</span>
+    <span class="alert-id">⬛ ALERT-7743-LAMBDA</span>
+  </div>
+
+  <!-- SCP Logo -->
+  <div class="logo-wrap">
+    <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" width="160" height="160">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <mask id="circle-mask">
+          <circle cx="80" cy="80" r="72" fill="white"/>
+          <circle cx="80" cy="80" r="52" fill="black"/>
+        </mask>
+        <mask id="inner-mask">
+          <circle cx="80" cy="80" r="50" fill="white"/>
+          <circle cx="80" cy="80" r="30" fill="black"/>
+        </mask>
+      </defs>
+
+      <!-- Outer ring -->
+      <circle cx="80" cy="80" r="72" fill="none" stroke="#e8e2d4" stroke-width="2.5"/>
+      <!-- Middle ring -->
+      <circle cx="80" cy="80" r="54" fill="none" stroke="#e8e2d4" stroke-width="1.5"/>
+      <!-- Inner ring -->
+      <circle cx="80" cy="80" r="32" fill="none" stroke="#e8e2d4" stroke-width="2"/>
+      <!-- Center dot -->
+      <circle cx="80" cy="80" r="6" fill="#e8e2d4"/>
+
+      <!-- Three spokes with arrowheads — the SCP arrow motif -->
+      <!-- Arrow UP-RIGHT -->
+      <g filter="url(#glow)">
+        <line x1="80" y1="80" x2="80" y2="20" stroke="#e8e2d4" stroke-width="3" stroke-linecap="butt"/>
+        <polygon points="80,8 73,24 87,24" fill="#e8e2d4"/>
+
+        <!-- Arrow DOWN-RIGHT -->
+        <line x1="80" y1="80" x2="130" y2="132" stroke="#e8e2d4" stroke-width="3" stroke-linecap="butt"/>
+        <polygon points="140,142 124,133 133,124" fill="#e8e2d4"/>
+
+        <!-- Arrow DOWN-LEFT -->
+        <line x1="80" y1="80" x2="30" y2="132" stroke="#e8e2d4" stroke-width="3" stroke-linecap="butt"/>
+        <polygon points="20,142 27,124 36,133" fill="#e8e2d4"/>
+      </g>
+
+      <!-- Dividing lines in outer ring -->
+      <line x1="80" y1="8" x2="80" y2="54" stroke="#e8e2d4" stroke-width="1" opacity="0.5"/>
+      <line x1="133" y1="126" x2="103" y2="106" stroke="#e8e2d4" stroke-width="1" opacity="0.5"/>
+      <line x1="27" y1="126" x2="57" y2="106" stroke="#e8e2d4" stroke-width="1" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <!-- Designation -->
+  <div class="designation">
+    <div class="code">SECURE · CONTAIN · PROTECT</div>
+    <div>Foundation Enforcement Network // Priority Level: OMEGA</div>
+  </div>
+
+  <!-- SEIZED heading -->
+  <div class="seized-wrap" style="width:100%">
+    <div class="seized-title">THIS WEBSITE HAS BEEN SEIZED</div>
+  </div>
+
+  <div class="seized-by">BY ORDER OF THE SCP FOUNDATION</div>
+
+  <div class="divider"></div>
+
+  <!-- Warning block -->
+  <div class="warning-block">
+    <p>
+      This domain has been seized and placed under the jurisdiction of the
+      SCP Foundation pursuant to <span class="redact">████████████ Regulation 17-Γ, Article 9 ████</span>.
+      Unauthorized access, reproduction, or distribution of materials formerly hosted herein
+      is strictly prohibited under <span class="redact">████ ██████ ██</span> and Foundation Containment Protocol
+      Theta-9. All prior data has been archived under Case File
+      <span class="redact">SCP-████-EX</span> and is classified LEVEL 4 or above.
+      Attempts to circumvent this notice will be logged and prosecuted.
+    </p>
+  </div>
+
+  <!-- Metadata grid -->
+  <div class="meta-grid">
+    <div class="meta-cell">
+      <span class="label">Seizure Date</span>
+      <span class="value" id="seizure-date">—</span>
+    </div>
+    <div class="meta-cell">
+      <span class="label">Authority</span>
+      <span class="value">O5 COUNCIL</span>
+    </div>
+    <div class="meta-cell">
+      <span class="label">Status</span>
+      <span class="value red">◉ ACTIVE SEIZURE</span>
+    </div>
+    <div class="meta-cell">
+      <span class="label">Clearance Required</span>
+      <span class="value">LEVEL 5</span>
+    </div>
+    <div class="meta-cell">
+      <span class="label">Case Reference</span>
+      <span class="value" id="case-ref">—</span>
+    </div>
+    <div class="meta-cell">
+      <span class="label">Containment Class</span>
+      <span class="value red">KETER</span>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <span>SCP Foundation // All Rights Reserved // scpfoundation.net</span>
+    <span class="warning-code">⬛ DO NOT ACCESS</span>
+  </div>
+</div>
+
+<script>
+  // Set dynamic date and case ref
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('seizure-date').textContent =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+
+  const caseNum = 'SCP-' + Math.floor(1000 + Math.random() * 8999) + '-EX';
+  document.getElementById('case-ref').textContent = caseNum;
+
+  // Random power-surge flicker effect
+  function randomFlicker() {
+    const overlay = document.getElementById('flicker-overlay');
+    const container = document.querySelector('.container');
+
+    // Random chance to do a heavy glitch
+    if (Math.random() < 0.15) {
+      overlay.style.background = `rgba(255,255,255,${Math.random() * 0.12})`;
+      overlay.style.opacity = '1';
+      const off1 = Math.random() * 80 + 30;
+      const off2 = Math.random() * 60 + 20;
+      setTimeout(() => { overlay.style.opacity = '0'; }, off1);
+      setTimeout(() => {
+        overlay.style.opacity = '1';
+        overlay.style.background = `rgba(255,255,255,${Math.random() * 0.06})`;
+      }, off1 + off2);
+      setTimeout(() => { overlay.style.opacity = '0'; }, off1 + off2 + 40);
+    }
+
+    // Body-level brightness pulse
+    if (Math.random() < 0.1) {
+      document.body.style.filter = `brightness(${0.6 + Math.random() * 0.5})`;
+      setTimeout(() => {
+        document.body.style.filter = `brightness(${0.8 + Math.random() * 0.3})`;
+        setTimeout(() => { document.body.style.filter = ''; }, 50 + Math.random() * 60);
+      }, 30 + Math.random() * 50);
+    }
+
+    const nextDelay = 200 + Math.random() * 3000;
+    setTimeout(randomFlicker, nextDelay);
+  }
+
+  randomFlicker();
+
+  // Horizontal scanline glitch
+  function glitchLine() {
+    if (Math.random() < 0.3) {
+      const line = document.createElement('div');
+      line.style.cssText = `
+        position: fixed;
+        left: 0; right: 0;
+        top: ${Math.random() * 100}%;
+        height: ${1 + Math.floor(Math.random() * 4)}px;
+        background: rgba(255,255,255,${0.04 + Math.random() * 0.08});
+        pointer-events: none;
+        z-index: 200;
+      `;
+      document.body.appendChild(line);
+      setTimeout(() => line.remove(), 80 + Math.random() * 120);
+    }
+    setTimeout(glitchLine, 300 + Math.random() * 2500);
+  }
+
+  glitchLine();
+</script>
+</body>
+</html>
